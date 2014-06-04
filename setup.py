@@ -23,3 +23,7 @@ setup(
 # Setup /etc source conf files
 with open('/etc/openhim-report-tasks.source', 'w') as src:
     src.write(os.getcwd())
+
+# Cron script permissions
+os.chmod('/etc/cron.daily/openhim_reports.sh', 0755)
+os.chmod('/etc/cron.hourly/openhim_alerts.sh', 0755)
