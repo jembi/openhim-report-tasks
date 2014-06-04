@@ -1,0 +1,5 @@
+build/
+dist/
+openhim_report_tasks.egg-info/
+virtualenv/
+*.pyc

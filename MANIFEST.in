@@ -1,0 +1,5 @@
+include README.md
+include openhim-report-tasks.conf
+include openhim_alerts.sh
+include openhim_reports.sh
+recursive-include *.py
