@@ -2,6 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 import ConfigParser
 import MySQLdb
 from datetime import datetime
@@ -9,7 +11,7 @@ from datetime import datetime
 def log(message):
     print "[" + datetime.now().__str__() + "] " + message
 
-def send_email(subject, message):
+def send_email(subject, plain, html):
     config = ConfigParser.RawConfigParser();
     config.read('/etc/openhim-report-tasks.conf')
 
@@ -19,14 +21,19 @@ def send_email(subject, message):
     user = config.get('SMTP','smtp_user')
     pwd = config.get('SMTP','smtp_passwd')
 
-    header = "From: %s\nTo: %s\nSubject: %s\n\n" % (user, to, subject,)
+    multipart = MIMEMultipart('alternative')
+    multipart['From'] = user
+    multipart['To'] = to
+    multipart['Subject'] = subject
+    multipart.attach(MIMEText(plain, 'plain'))
+    multipart.attach(MIMEText(html, 'html'))
 
     smtpserver = smtplib.SMTP(host, port)
     smtpserver.ehlo()
     smtpserver.starttls()
     smtpserver.ehlo
     smtpserver.login(user, pwd)
-    smtpserver.sendmail(user, to, header + message)
+    smtpserver.sendmail(user, to, multipart.as_string())
     smtpserver.close()
     log("Sent email to '%s' using '%s' on port %s" % (to, host, port,))
 

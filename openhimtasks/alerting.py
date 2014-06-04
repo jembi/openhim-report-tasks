@@ -4,23 +4,38 @@
 from openhimtasks import utils
 from contextlib import closing
 
-email_template = """
+plain_template = """
 ERROR Alert - Transaction Failures
 
 The following transaction(s) have failed on the OpenHIM instance running on %s:
 %s
 """
+html_template = """
+<html>
+<head></head>
+<body>
+<h1>ERROR Alert - Transaction Failures</h1>
+<div>
+<p>The following transaction(s) have failed on the OpenHIM instance running on <b>%s</b>:</p>
+%s
+</div>
+</body>
+</html>
+"""
 
 def send_alert(transactions, cursor, conn):
-    header = "ERROR - Transaction Failure"
-    transactions_formatted = ""
+    subject = "ERROR - Transaction Failure"
+    transactions_plain = ""
+    transactions_html = "<table>"
     webui_url = utils.get_webui_url()
     for transaction in transactions:
         url = webui_url + "/transview/?id=" + str(transaction[0])
-        transactions_formatted += "%s\n" % (url,)
-    message = email_template % (utils.get_him_instance(), transactions_formatted,)
-    utils.send_email(header, message)
-    cursor.execute("insert into alerts(message) values ('" + message + "')")
+        transactions_plain += "%s\n" % (url,)
+        transactions_html += "<tr><td><a href='%s'>%s</a></td></tr>\n" % (url, url,)
+    plain = plain_template % (utils.get_him_instance(), transactions_plain,)
+    html = html_template % (utils.get_him_instance(), transactions_html,)
+    utils.send_email(subject, plain, html)
+    cursor.execute("insert into alerts(message) values ('" + plain + "')")
     conn.commit()
     utils.log("Updated database")
 
