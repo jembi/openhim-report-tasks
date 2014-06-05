@@ -46,7 +46,8 @@ def run():
         cursor.execute("select count(*) as count from alerts where date(sent_date) = curdate()")
         count = cursor.fetchone()
         if count[0] == 0:
-            cursor.execute("select id from transaction_log where date(recieved_timestamp) = curdate() and status = 3")
+            cursor.execute(("select id from transaction_log where date(recieved_timestamp) = curdate() and "
+                "status = 3 and request_params not rlike '.*notificationType.*'"))
             transactions = cursor.fetchall()
             if not transactions or len(transactions) == 0:
                 utils.log("No errors found for today")

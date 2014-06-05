@@ -24,7 +24,8 @@ td
 </style>
 </head>
 <body>
-<h1>OpenHIM Transaction Daily Transaction Summary for %s</h1>
+<h1>OpenHIM Daily Summary - %s</h1>
+<h2>Summary of transactions for the last 24 hours</h2>
 <div>
 <table>
 <tr><td><b>Transaction</b></td><td><b>Avg Response</b></td><td><b>Max Response</b></td><td><b>Min Response</b></td>
@@ -32,6 +33,9 @@ td
 %s
 %s
 </table>
+<br/><br/>
+<p><i>Note that RapidSMS transactions are not included in the summary</i></p>
+<br/>
 <p><small>Generated on %s</small></p>
 </div>
 </body>
@@ -54,6 +58,8 @@ endpoints = {
     'getHCFacility': ('Get HC Facility', "path RLIKE 'ws/rest/v1/facility/.*' AND http_method='GET'"),
     'postAlert': ('Post Alert', "path RLIKE 'ws/rest/v1/alerts' AND http_method='POST'")
 }
+
+stat_fields = ['processing', 'completed', 'error', 'avg', 'max', 'min']
 monitoring_num_days = 1
 
 class Monitor(object):
@@ -64,14 +70,15 @@ class Monitor(object):
             
             receivedClause = "recieved_timestamp > subdate(curdate(), interval " + str(monitoring_num_days) + " day)"
             noRerunClause = "rerun IS NOT true"
+            rapidSMSClause = "request_params NOT RLIKE '.*notificationType.*'"
             
-            processingSql = "SELECT COUNT(*) FROM `transaction_log` WHERE " + receivedClause + " AND status=1 AND " + noRerunClause
-            completedSql = "SELECT COUNT(*) FROM `transaction_log` WHERE " + receivedClause + " AND status=2 AND " + noRerunClause
-            errorSql = "SELECT COUNT(*) FROM `transaction_log` WHERE " + receivedClause + " AND status=3 AND " + noRerunClause
+            processingSql = "SELECT COUNT(*) FROM `transaction_log` WHERE " + receivedClause + " AND status=1 AND " + noRerunClause + " AND " + rapidSMSClause
+            completedSql = "SELECT COUNT(*) FROM `transaction_log` WHERE " + receivedClause + " AND status=2 AND " + noRerunClause + " AND " + rapidSMSClause
+            errorSql = "SELECT COUNT(*) FROM `transaction_log` WHERE " + receivedClause + " AND status=3 AND " + noRerunClause + " AND " + rapidSMSClause
             
-            avgSql = "SELECT AVG(responded_timestamp - recieved_timestamp) FROM `transaction_log` WHERE " + receivedClause + " AND " + noRerunClause
-            maxSql = "SELECT MAX(responded_timestamp - recieved_timestamp) FROM `transaction_log` WHERE " + receivedClause + " AND " + noRerunClause
-            minSql = "SELECT MIN(responded_timestamp - recieved_timestamp) FROM `transaction_log` WHERE " + receivedClause + " AND " + noRerunClause
+            avgSql = "SELECT AVG(responded_timestamp - recieved_timestamp) FROM `transaction_log` WHERE " + receivedClause + " AND " + noRerunClause + " AND " + rapidSMSClause
+            maxSql = "SELECT MAX(responded_timestamp - recieved_timestamp) FROM `transaction_log` WHERE " + receivedClause + " AND " + noRerunClause + " AND " + rapidSMSClause
+            minSql = "SELECT MIN(responded_timestamp - recieved_timestamp) FROM `transaction_log` WHERE " + receivedClause + " AND " + noRerunClause + " AND " + rapidSMSClause
             
             if extraWhereClause != "":
                 processingSql += " AND " + extraWhereClause + ";"
@@ -104,13 +111,17 @@ class Monitor(object):
         return stats
     
     def get_stats(self):
-        totalStats = self.calculateStats();
+        totalStats = {};
+        for field in stat_fields:
+            totalStats[field] = 0
         totalStats['description'] = 'TOTAL'
         stats = []
         for endpoint in endpoints.values():
             stat = self.calculateStats(endpoint[1])
             stat['description'] = endpoint[0]
             stats.append(stat)
+            for field in stat_fields:
+                if stat[field]: totalStats[field] += stat[field]
 
         return (totalStats, stats)
 
