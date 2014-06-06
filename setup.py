@@ -14,8 +14,8 @@ setup(
     install_requires=[
         "mysql-python",
     ],
-    data_files=[('/etc/cron.daily', ['openhim_reports.sh']),
-        ('/etc/cron.hourly', ['openhim_alerts.sh']),
+    data_files=[('/etc/cron.daily', ['openhim_reports']),
+        ('/etc/cron.hourly', ['openhim_alerts']),
         ('/etc', ['openhim-report-tasks.conf']),
     ],
 )
@@ -25,5 +25,5 @@ with open('/etc/openhim-report-tasks.source', 'w') as src:
     src.write(os.getcwd())
 
 # Cron script permissions
-os.chmod('/etc/cron.daily/openhim_reports.sh', 0755)
-os.chmod('/etc/cron.hourly/openhim_alerts.sh', 0755)
+os.chmod('/etc/cron.daily/openhim_reports', 0755)
+os.chmod('/etc/cron.hourly/openhim_alerts', 0755)
