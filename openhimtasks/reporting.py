@@ -135,14 +135,17 @@ def run():
     total_stats, stats = Monitor().get_stats()
 
     check_none = lambda x: x if x else ''
+    check_and_format = lambda x: ("%.2fs" % x) if x else ''
+
     format_stat = lambda stat: "<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>" % (
-        check_none(stat['description']), check_none(stat['avg']), check_none(stat['max']), check_none(stat['min']),
+        check_none(stat['description']), check_and_format(stat['avg']), check_and_format(stat['max']), check_and_format(stat['min']),
         check_none(stat['processing']), check_none(stat['completed']), check_none(stat['error'])
     )
     stats_html = reduce(lambda a, b: a + b, map(format_stat, stats))
 
     total_html = "<tr><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td><td><b>%s</b></td></tr>" % (
-        total_stats['description'], total_stats['avg'], total_stats['max'], total_stats['min'], total_stats['processing'], total_stats['completed'], total_stats['error']
+        total_stats['description'], check_and_format(total_stats['avg']), check_and_format(total_stats['max']), check_and_format(total_stats['min']),
+        total_stats['processing'], total_stats['completed'], total_stats['error']
     )
 
     header = "Daily Transaction Report"
