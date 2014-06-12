@@ -135,8 +135,8 @@ def run():
 
     total_stats, stats = Monitor().get_stats()
 
-    check_none = lambda x: x if x else ''
-    check_and_format = lambda x: ("%.2fs" % x) if x else ''
+    check_none = lambda x: x if x is not None else ''
+    check_and_format = lambda x: ("%.2fs" % x) if x is not None else ''
 
     format_stat = lambda stat: "<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>" % (
         check_none(stat['description']), check_and_format(stat['avg']), check_and_format(stat['max']), check_and_format(stat['min']),
