@@ -3,9 +3,10 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 from openhimtasks import utils
 from contextlib import closing
+from datetime import date, timedelta
 import time
 
-plain_template = "OpenHIM Transaction Daily Transaction Summary for %s"
+plain_template = "OpenHIM Daily Transaction Report for %s"
 
 html_template = """
 <html>
@@ -24,8 +25,8 @@ td
 </style>
 </head>
 <body>
-<h1>OpenHIM Daily Summary - %s</h1>
-<h2>Summary of transactions for the last 24 hours</h2>
+<h1>OpenHIM Daily Transaction Report</h1>
+<h2>Summary of transactions for the OpenHIM instance running on <b>%s</b> for the date %s</h2>
 <div>
 <table>
 <tr><td><b>Transaction</b></td><td><b>Avg Response</b></td><td><b>Max Response</b></td><td><b>Min Response</b></td>
@@ -42,10 +43,7 @@ td
 </html>
 """
 
-# Copy-paste coding :/
-# Adapted straight from https://github.com/jembi/openhim-webui/blob/e4f0a1080364c2fa491e28d3bf25663c85d18c99/openhim-webui/errorui.py#L248
-#
-# TODO retrieve data from the WebUI using a web service
+# Adapted from https://github.com/jembi/openhim-webui/blob/e4f0a1080364c2fa491e28d3bf25663c85d18c99/openhim-webui/errorui.py#L248
 endpoints = {
     'savePatientEncounter': ('Save Patient Encounter', "path RLIKE 'ws/rest/v1/patient/.*/encounters' AND http_method='POST'"),
     'queryForPreviousPatientEncounters': ('Query for Previous Patient Encounters', "path RLIKE 'ws/rest/v1/patient/.*/encounters' AND http_method='GET'"),
@@ -65,10 +63,13 @@ monitoring_num_days = 1
 class Monitor(object):
     def calculateStats(self, extraWhereClause=""):
         conn = utils.get_mysql_conn()
+        date_from = (date.today() - timedelta(days=1)).strftime("%Y-%m-%d") + " 00:00"
+        date_to = date.today().strftime("%Y-%m-%d") + " 00:00"
+
         with closing(conn.cursor()) as cursor:
             stats = {}
             
-            receivedClause = "recieved_timestamp > subdate(curdate(), interval " + str(monitoring_num_days) + " day)"
+            receivedClause = "recieved_timestamp >= '%s' AND recieved_timestamp < '%s'" % (date_from, date_to)
             noRerunClause = "rerun IS NOT true"
             rapidSMSClause = "request_params NOT RLIKE '.*notificationType.*'"
             
@@ -129,13 +130,13 @@ class Monitor(object):
 def run():
     utils.log("Running reporting task")
 
-    today = time.strftime('%Y-%m-%d')
+    report_date = (date.today() - timedelta(days=1)).strftime('%Y-%m-%d')
     generated = time.strftime('%Y-%m-%d %H:%M:%S')
 
     total_stats, stats = Monitor().get_stats()
 
-    check_none = lambda x: x if x else ''
-    check_and_format = lambda x: ("%.2fs" % x) if x else ''
+    check_none = lambda x: x if x is not None else ''
+    check_and_format = lambda x: ("%.2fs" % x) if x is not None else ''
 
     format_stat = lambda stat: "<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>" % (
         check_none(stat['description']), check_and_format(stat['avg']), check_and_format(stat['max']), check_and_format(stat['min']),
@@ -148,9 +149,9 @@ def run():
         total_stats['processing'], total_stats['completed'], total_stats['error']
     )
 
-    header = "Daily Transaction Report"
-    plain = plain_template % (today,)
-    html = html_template % (today, stats_html, total_html, generated,)
+    header = "OpenHIM Daily Transaction Report " + report_date
+    plain = plain_template % (report_date)
+    html = html_template % (utils.get_him_instance(), report_date, stats_html, total_html, generated)
 
     utils.send_email(header, plain, html)
     utils.log("Daily transaction report sent")
